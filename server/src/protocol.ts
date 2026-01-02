@@ -1,5 +1,5 @@
 export type ClientMsg =
-  | { type: "join"; name: string }
+  | { type: "join"; name: string; color: number }
   | { type: "move"; x: number; y: number }
   | { type: "chat"; text: string }
   | { type: "buy_item"; catalogId: string }
@@ -22,6 +22,7 @@ export type ServerMsg =
 export type UserState = {
   id: string;
   name: string;
+  color: number;
   x: number; // grid coords
   y: number; // grid coords
 };

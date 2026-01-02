@@ -70,7 +70,7 @@ wss.on("connection", (ws) => {
   conns.set(id, { ws, id });
 
   // Initialize player
-  const user: UserState = { id, name: "Guest", x: 5, y: 5 };
+  const user: UserState = { id, name: "Guest", color: 0xFFFFFF, x: 5, y: 5 };
   users.set(id, user);
   userCredits.set(id, 100); // Starter credits
   userInventories.set(id, []);
@@ -95,6 +95,7 @@ wss.on("connection", (ws) => {
 
       if (msg.type === "join") {
         me.name = msg.name.trim().slice(0, 24) || "Guest";
+        me.color = msg.color || 0xFFFFFF;
         broadcast({ type: "user_joined", id, user: me }, id);
         return;
       }

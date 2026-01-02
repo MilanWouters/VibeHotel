@@ -22,38 +22,146 @@ const camera = { x: window.innerWidth / 2, y: 140 };
 world.position.set(camera.x, camera.y);
 
 const tilesLayer = new PIXI.Container();
-const objectLayer = new PIXI.Container();
-const avatarLayer = new PIXI.Container();
-world.addChild(tilesLayer, objectLayer, avatarLayer);
+const sortLayer = new PIXI.Container();
+world.addChild(tilesLayer, sortLayer); // Walls are childAt(0)
+
 
 const tiles = new PIXI.Graphics();
 tilesLayer.addChild(tiles);
 
-function drawDiamond(g: PIXI.Graphics, x: number, y: number) {
-  g.moveTo(x, y - TILE_H / 2);
-  g.lineTo(x + TILE_W / 2, y);
-  g.lineTo(x, y + TILE_H / 2);
-  g.lineTo(x - TILE_W / 2, y);
+// --- Isometric Drawing Helpers ---
+function drawIsoRect(g: PIXI.Graphics, x: number, y: number, w: number, h: number, color: number, height: number = 0) {
+  // Top Face
+  g.beginFill(color);
+  g.moveTo(x, y - height);
+  g.lineTo(x + w / 2, y + h / 2 - height);
+  g.lineTo(x, y + h - height);
+  g.lineTo(x - w / 2, y + h / 2 - height);
   g.closePath();
+  g.endFill();
+
+  // Right Face
+  g.beginFill(params.shadeColor(color, -0.2)); // darker
+  g.moveTo(x + w / 2, y + h / 2 - height);
+  g.lineTo(x, y + h - height);
+  g.lineTo(x, y + h); // bottom point
+  g.lineTo(x + w / 2, y + h / 2);
+  g.closePath();
+  g.endFill();
+
+  // Left Face
+  g.beginFill(params.shadeColor(color, -0.4)); // darkest
+  g.moveTo(x - w / 2, y + h / 2 - height);
+  g.lineTo(x, y + h - height);
+  g.lineTo(x, y + h);
+  g.lineTo(x - w / 2, y + h / 2);
+  g.closePath();
+  g.endFill();
 }
 
-function redrawTiles() {
-  tiles.clear();
-  const strokeColor = 0x000000;
-  const strokeAlpha = 0.12;
+const params = {
+  floorColor: 0x989865,
+  wallColor: 0xb5b5b5,
+  wallPatternColor: 0x999999,
+  shadeColor: (col: number, percent: number) => {
+    // simple darken
+    const amt = Math.round(255 * percent);
+    const R = (col >> 16) + amt;
+    const G = (col >> 8 & 0x00FF) + amt;
+    const B = (col & 0x0000FF) + amt;
+    return (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1) as any as number;
+  }
+};
 
+const wallLayer = new PIXI.Container();
+world.addChildAt(wallLayer, 0); // Behind tiles
+
+function redrawRoom() {
+  tiles.clear();
+  // Floor
   for (let gy = 0; gy < MAP_H; gy++) {
     for (let gx = 0; gx < MAP_W; gx++) {
       const s = gridToScreen({ x: gx, y: gy });
-      const fillAlpha = ((gx + gy) % 2 === 0) ? 0.10 : 0.06;
-      tiles.beginPath();
-      drawDiamond(tiles, s.x, s.y);
-      tiles.fill({ color: 0xffffff, alpha: fillAlpha });
-      tiles.stroke({ width: 1, color: strokeColor, alpha: strokeAlpha });
+      // Thickness = 8
+      drawIsoRect(tiles, s.x, s.y, TILE_W, TILE_H, params.floorColor, 0);
+
+      // Tile Highlights
+      tiles.lineStyle(1, 0x000000, 0.05);
+      tiles.moveTo(s.x, s.y); tiles.lineTo(s.x + TILE_W / 2, s.y + TILE_H / 2);
+      tiles.moveTo(s.x, s.y); tiles.lineTo(s.x - TILE_W / 2, s.y + TILE_H / 2);
+      tiles.lineStyle(0);
     }
   }
+
+  // Walls
+  const wallH = 160;
+  const wallG = new PIXI.Graphics();
+  wallLayer.removeChildren();
+  wallLayer.addChild(wallG);
+
+  // Left Wall (along Y axis, at X=0)
+  // Drawn from (0,0) to (0, MAP_H) screen coords? 
+  // We need to draw segments.
+
+  // Right Wall (along X=0..W, at Y=0)
+  for (let i = 0; i < MAP_W; i++) {
+    const s = gridToScreen({ x: i, y: 0 });
+    // "Wall" is vertical plane.
+    // Projecting a vertical rect in iso:
+    // Bottom-Left: s.x - TILE_W/2, s.y
+    // Bottom-Right: s.x, s.y + TILE_H/2
+    // Top-Left: s.x - TILE_W/2, s.y - wallH
+    // Top-Right: s.x, s.y + TILE_H/2 - wallH
+    // NO, simplified:
+
+    // Wall Segment visual placement is tricky. 
+    // Let's just draw generic "faces".
+
+    // Right wall segment (facing Left) at x=i, y=0.
+    // Position is slightly offset to be "behind" the tile (0,0)
+
+    // Let's simpler approach: Draw Wall Sprites? No, graphics.
+
+    // Right Wall (Top Right side of room)
+    // Start: (0,0) -> End: (MAP_W, 0)
+    // Screen: (0,0) -> ...
+
+    // We will draw it tile by tile to match depth if needed, but for back walls we can just draw one big shape?
+    // No, easier loop.
+
+    const x = s.x - TILE_W / 4;
+    const y = s.y + TILE_H / 4;
+
+    // Face facing South-West
+    wallG.beginFill(0xbfbfbf);
+    wallG.moveTo(s.x, s.y);
+    wallG.lineTo(s.x + TILE_W / 2, s.y + TILE_H / 2); // bottom
+    wallG.lineTo(s.x + TILE_W / 2, s.y + TILE_H / 2 - wallH); // right up
+    wallG.lineTo(s.x, s.y - wallH); // top-left
+    wallG.closePath();
+    wallG.endFill();
+
+    // Pattern
+    wallG.beginFill(0x999999);
+    wallG.drawRect(s.x + TILE_W / 2 - 4, s.y + TILE_H / 2 - wallH, 4, wallH); // strip
+    wallG.endFill();
+  }
+
+  // Left Wall (Top Left side of room)
+  for (let i = 0; i < MAP_H; i++) {
+    const s = gridToScreen({ x: 0, y: i });
+
+    // Face facing South-East
+    wallG.beginFill(0xb0b0b0);
+    wallG.moveTo(s.x, s.y);
+    wallG.lineTo(s.x - TILE_W / 2, s.y + TILE_H / 2); // bottom
+    wallG.lineTo(s.x - TILE_W / 2, s.y + TILE_H / 2 - wallH); // left up
+    wallG.lineTo(s.x, s.y - wallH); // top-right
+    wallG.closePath();
+    wallG.endFill();
+  }
 }
-redrawTiles();
+redrawRoom();
 
 // --- Furniture Rendering ---
 type FurniDef = { id: string, name: string, cost: number, color: number };
@@ -67,40 +175,73 @@ const catalog: FurniDef[] = [
 type FurniSprite = { container: PIXI.Container; typeId: string; pos: Vec2 };
 const furnis = new Map<string, FurniSprite>();
 
-function makeFurni(instanceId: string, typeId: string, gx: number, gy: number): FurniSprite {
-  const def = catalog.find(c => c.id === typeId) || catalog[0];
-  const container = new PIXI.Container();
-  const body = new PIXI.Graphics();
-  body.beginFill(def.color, 0.9);
+const furnitureTextures = new Map<string, PIXI.Texture>();
+
+function getFurniTexture(typeId: string, color: number): PIXI.Texture {
+  const key = typeId + color;
+  if (furnitureTextures.has(key)) return furnitureTextures.get(key)!;
+
+  const g = new PIXI.Graphics();
+
+  // Helper to draw 3D box
+  const box = (x: number, y: number, w: number, h: number, z: number, col: number) => {
+    // Top
+    g.beginFill(col);
+    g.moveTo(x, y - z);
+    g.lineTo(x + w / 2, y + h / 2 - z);
+    g.lineTo(x, y + h - z);
+    g.lineTo(x - w / 2, y + h / 2 - z);
+    g.endFill();
+
+    // Right
+    g.beginFill(params.shadeColor(col, -0.2));
+    g.moveTo(x + w / 2, y + h / 2 - z);
+    g.lineTo(x, y + h - z);
+    g.lineTo(x, y + h);
+    g.lineTo(x + w / 2, y + h / 2);
+    g.endFill();
+
+    // Left
+    g.beginFill(params.shadeColor(col, -0.3));
+    g.moveTo(x - w / 2, y + h / 2 - z);
+    g.lineTo(x, y + h - z);
+    g.lineTo(x, y + h);
+    g.lineTo(x - w / 2, y + h / 2);
+    g.endFill();
+  };
+
   if (typeId.includes("chair")) {
-    body.drawRoundedRect(-14, -24, 28, 24, 4);
-    body.beginFill(def.color, 0.7);
-    body.drawRect(-14, -34, 28, 10);
+    // Legs
+    const legC = 0x888888;
+    // 4 legs
+    // Back Left (-8, -8) relative to center?
+    // Let's approximate.
+    // Base seat height = 15
+
+    // Seat
+    box(0, 0, 24, 12, 14, color);
+    // Backrest
+    box(-2, -6, 4, 12, 34, params.shadeColor(color, 0.1));
+
   } else if (typeId === "table_wood") {
-    body.drawRoundedRect(-22, -26, 44, 12, 4);
-    body.beginFill(def.color, 0.6);
-    body.drawRect(-20, -14, 4, 14);
-    body.drawRect(16, -14, 4, 14);
+    // Table top
+    box(0, 0, 48, 24, 18, color);
+    // Leg
+    box(0, 5, 10, 5, 18, 0x553311);
   } else {
-    body.drawRoundedRect(-12, -28, 24, 28, 12);
+    // Plant/Default
+    box(0, 0, 16, 8, 8, 0x552200); // pot
+    g.beginFill(0x22aa22);
+    g.drawCircle(0, -25, 12);
+    g.endFill();
   }
-  body.endFill();
 
-  body.eventMode = "static";
-  body.cursor = "pointer";
-  body.on("pointerdown", (e) => {
-    e.stopPropagation();
-    if (e.buttons === 2 || e.shiftKey) {
-      net.send({ type: "pickup_furni", instanceId });
-    }
-  });
-
-  container.addChild(body);
-  const s = gridToScreen({ x: gx, y: gy });
-  container.position.set(s.x, s.y);
-  objectLayer.addChild(container);
-  return { container, typeId, pos: { x: gx, y: gy } };
+  const tex = app.renderer.generateTexture(g);
+  furnitureTextures.set(key, tex);
+  return tex;
 }
+
+// Old makeFurni removed
 
 // --- Avatars ---
 type Avatar = {
@@ -109,32 +250,45 @@ type Avatar = {
   label: PIXI.Text;
   target: Vec2;
   pos: Vec2;
+  color: number;
 };
 const avatars = new Map<string, Avatar>();
 
 function makeAvatar(u: UserState): Avatar {
   const container = new PIXI.Container();
   const body = new PIXI.Graphics();
-  body.beginFill(0x000000, 0.18);
-  body.drawCircle(0, 0, 14);
+
+  // Shadow
+  body.beginFill(0x000000, 0.2);
+  body.drawEllipse(0, 0, 14, 8);
   body.endFill();
+
+  // Body
+  body.beginFill(u.color ?? 0xffffff);
+  body.lineStyle(2, 0x000000, 1);
+  body.drawRect(-10, -32, 20, 32);
+  body.endFill();
+
+  // Head
+  body.beginFill(0xffccaa);
+  body.lineStyle(2, 0x000000, 1);
+  body.drawRect(-8, -44, 16, 16);
+  body.endFill();
+
 
   const label = new PIXI.Text({
     text: u.name,
-    style: new PIXI.TextStyle({ fontFamily: "Ubuntu", fontSize: 13, fill: 0xffffff, fontWeight: 'bold' })
+    style: new PIXI.TextStyle({ fontFamily: "VT323", fontSize: 18, fill: 0xffffff, stroke: { color: 0x000000, width: 3 } })
   });
-  label.anchor.set(0.5, 1.4);
+  label.anchor.set(0.5, 1.0);
+  label.y = -50;
 
-  // Name tag background
-  const tagBg = new PIXI.Graphics();
-  tagBg.beginFill(0x000000, 0.4);
-  tagBg.drawRoundedRect(-label.width / 2 - 4, -label.height - 18, label.width + 8, label.height + 4, 4);
-  tagBg.endFill();
 
-  container.addChild(tagBg, body, label);
-  avatarLayer.addChild(container);
+  container.addChild(body, label);
+  sortLayer.addChild(container);
 
-  return { container, body, label, pos: { x: u.x, y: u.y }, target: { x: u.x, y: u.y } };
+
+  return { container, body, label, pos: { x: u.x, y: u.y }, target: { x: u.x, y: u.y }, color: u.color };
 }
 
 function ensureAvatar(u: UserState) {
@@ -158,9 +312,11 @@ function setTarget(id: string, x: number, y: number) {
 function updateAvatarVisual(id: string) {
   const a = avatars.get(id);
   if (!a) return;
+  if (!a) return;
   const s = gridToScreen(a.pos);
-  a.container.position.set(s.x, s.y - 10);
-  avatarLayer.children.sort((a, b) => a.y - b.y);
+  a.container.position.set(s.x, s.y);
+  // Z-sort handled in ticker
+
 }
 
 app.ticker.add((ticker) => {
@@ -180,6 +336,11 @@ app.ticker.add((ticker) => {
       updateAvatarVisual(id);
     }
   }
+
+  // Global Depth Sort
+  sortLayer.children.sort((a, b) => {
+    return a.y - b.y;
+  });
 });
 
 // Click to move
@@ -199,7 +360,7 @@ function spawnChatBubble(avatarId: string, text: string) {
   if (!a) return;
   const bubble = document.createElement("div");
   bubble.className = "chat-bubble";
-  bubble.textContent = text;
+  bubble.textContent = `${a.label.text}: ${text}`;
   chatLayer.appendChild(bubble);
   updateBubblePos(a, bubble);
   setTimeout(() => {
@@ -212,7 +373,7 @@ function spawnChatBubble(avatarId: string, text: string) {
 function updateBubblePos(a: Avatar, bubble: HTMLElement) {
   const s = world.toGlobal(a.container.position);
   bubble.style.left = `${s.x}px`;
-  bubble.style.top = `${s.y - 80}px`;
+  bubble.style.top = `${s.y - 70}px`;
 }
 
 app.ticker.add(() => {
@@ -230,25 +391,58 @@ const net = new NetClient(wsUrl, onServerMsg, (s) => {
   const statusEl = document.getElementById("status")!;
   statusEl.textContent = s;
 });
-net.connect();
+
+// Login Logic
+let myName = "Guest";
+let myColor = 0xffffff;
+
+const overlay = document.getElementById("login-overlay")!;
+const nameInput = document.getElementById("login-name") as HTMLInputElement;
+const loginBtn = document.getElementById("login-btn")!;
+const colorOpts = document.querySelectorAll(".color-opt");
+
+colorOpts.forEach((opt: any) => {
+  opt.onclick = () => {
+    colorOpts.forEach(o => o.classList.remove("selected"));
+    opt.classList.add("selected");
+    myColor = parseInt(opt.dataset.color);
+  };
+});
+
+loginBtn.onclick = () => {
+  myName = nameInput.value.trim() || "Guest";
+  overlay.classList.add("hidden");
+  net.connect();
+};
+
 
 function onServerMsg(msg: ServerMsg) {
   if (msg.type === "welcome") {
+    // Send join IMMEDIATELY after welcome
+    net.send({ type: "join", name: myName, color: myColor });
+
     for (const [id] of avatars) removeAvatar(id);
     for (const [id, f] of furnis) { f.container.destroy(); furnis.delete(id); }
+
+    // wait for update? actually welcome has users... but they might not be initialized with my latest data yet?
+    // actually join triggers broadcast.
+
+    // Render existing
     for (const u of Object.values(msg.users)) {
-      ensureAvatar(u);
-      const a = avatars.get(u.id)!;
-      a.pos = { x: u.x, y: u.y }; a.target = { x: u.x, y: u.y };
-      a.label.text = u.name;
-      updateAvatarVisual(u.id);
+      if (u.id !== msg.id) ensureAvatar(u); // Don't render self yet, wait for my join ack? No, render all.
+      else ensureAvatar({ ...u, name: myName, color: myColor }); // Optimistic?
     }
-    for (const obj of msg.roomObjects) furnis.set(obj.instanceId, makeFurni(obj.instanceId, obj.typeId, obj.x, obj.y));
+
+    // We can just rely on the existing list but we want to make sure we are updated.
+    // The server doesn't broadacst 'join' for ME on my connection? 
+    // Usually welcome sends the state.
+    // Let's just process the welcome state.
+
     updateCredits(msg.credits);
     updateInventoryUI(msg.inventory);
+
     const myNameEl = document.getElementById("my-name-display")!;
-    const me = msg.users[msg.id];
-    if (me) myNameEl.textContent = me.name;
+    myNameEl.textContent = myName;
     return;
   }
   if (msg.type === "user_joined") { ensureAvatar(msg.user); return; }
@@ -273,7 +467,7 @@ const catalogList = document.getElementById("catalog-list")!;
 const inventoryList = document.getElementById("inventory-list")!;
 const chatInput = document.getElementById("chat") as HTMLInputElement;
 
-function updateCredits(val: number) { creditsEl.textContent = `${val} Credits`; }
+function updateCredits(val: number) { creditsEl.textContent = `${val} CR`; }
 
 function updateInventoryUI(items: any[]) {
   inventoryList.innerHTML = "";
@@ -295,10 +489,109 @@ catalogList.innerHTML = "";
 for (const item of catalog) {
   const div = document.createElement("div");
   div.className = "item-card";
-  div.innerHTML = `<div class="item-icon" style="background: #${item.color.toString(16)}"></div><div class="item-name">${item.name}</div><div class="item-cost">${item.cost}C</div>`;
+  div.innerHTML = `<div class="item-icon" style="background: #${item.color.toString(16)}"></div><div class="item-name">${item.name}</div><div class="item-cost">${item.cost}</div>`;
   div.onclick = () => net.send({ type: "buy_item", catalogId: item.id });
   catalogList.appendChild(div);
 }
+
+// --- Music ---
+import { AudioEngine } from "./audio";
+const audio = new AudioEngine();
+const musicBtn = document.getElementById("toggle-music")!;
+musicBtn.onclick = () => {
+  const playing = audio.toggle();
+  musicBtn.textContent = playing ? "🎵 ON" : "🎵 OFF";
+  musicBtn.style.background = playing ? "#4caf50" : "#ddd";
+  musicBtn.style.color = playing ? "#fff" : "#000";
+};
+
+// --- Selection State ---
+let selectedFurniId: string | null = null;
+const selectionHighlight = new PIXI.Graphics();
+sortLayer.addChild(selectionHighlight); // Add to sort layer so it z-sorts? No, overlay.
+world.addChild(selectionHighlight);
+
+
+function updateSelectionVisual() {
+  selectionHighlight.clear();
+  if (!selectedFurniId) return;
+  const f = furnis.get(selectedFurniId);
+  if (!f) { selectedFurniId = null; return; }
+
+  const s = gridToScreen(f.pos);
+  selectionHighlight.lineStyle(2, 0xffff00, 1); // Yellow selection
+  // Draw bracket around base
+  selectionHighlight.drawRect(s.x - 20, s.y - 10, 40, 20);
+  // Animate?
+}
+
+app.ticker.add(() => {
+  if (selectedFurniId) updateSelectionVisual();
+});
+
+// Update makeFurni to handle selection
+// Update makeFurni to handle selection
+function makeFurni(instanceId: string, typeId: string, gx: number, gy: number): FurniSprite {
+  const def = catalog.find(c => c.id === typeId) || catalog[0];
+  const container = new PIXI.Container();
+
+  // Use texture for performance + consistent look
+  const tex = getFurniTexture(typeId, def.color);
+  const sprite = new PIXI.Sprite(tex);
+  sprite.anchor.set(0.5, 0.75); // Anchor at bottom-ish center
+
+  sprite.eventMode = "static";
+  sprite.cursor = "pointer";
+
+  // Larger Hit Area to ensure easier clicking
+  sprite.hitArea = new PIXI.Rectangle(-20, -60, 40, 60);
+
+  sprite.on("pointerdown", (e) => {
+    e.stopPropagation(); // Stop stage click
+    if (e.buttons === 2 || e.shiftKey) {
+      net.send({ type: "pickup_furni", instanceId });
+      document.getElementById("status")!.textContent = "Picked up " + def.name;
+    } else {
+      // Select
+      selectedFurniId = instanceId;
+      updateSelectionVisual(); // Immediate update
+      document.getElementById("status")!.textContent = "Selected: " + def.name + " (Click floor to move)";
+      console.log("Selected", instanceId);
+    }
+  });
+
+  container.addChild(sprite);
+  const s = gridToScreen({ x: gx, y: gy });
+  container.position.set(s.x, s.y);
+
+  // Tag as sortable
+  (container as any).zOrder = s.y;
+  sortLayer.addChild(container);
+
+  return { container, typeId, pos: { x: gx, y: gy } };
+}
+
+// Click to move (UPDATED)
+app.stage.eventMode = "static";
+app.stage.hitArea = app.screen;
+app.stage.on("pointerdown", (ev) => {
+  const local = world.toLocal(ev.global);
+  const g = screenToGrid(local);
+  const c = clampGrid(g.x, g.y);
+
+  if (selectedFurniId) {
+    // Attempt move
+    net.send({ type: "move_furni", instanceId: selectedFurniId, x: c.x, y: c.y });
+    document.getElementById("status")!.textContent = "Moved furniture";
+    selectedFurniId = null;
+    selectionHighlight.clear();
+  } else {
+    net.send({ type: "move", x: c.x, y: c.y });
+    document.getElementById("status")!.textContent = "Moving...";
+  }
+});
+
+
 
 document.getElementById("toggle-shop")!.onclick = () => { shopPanel.classList.toggle("hidden"); invPanel.classList.add("hidden"); };
 document.getElementById("toggle-inv")!.onclick = () => { invPanel.classList.toggle("hidden"); shopPanel.classList.add("hidden"); };
@@ -312,7 +605,7 @@ document.querySelectorAll(".panel-header").forEach(header => {
   header.addEventListener("mousedown", (e: any) => { isDragging = true; offset = { x: panel.offsetLeft - e.clientX, y: panel.offsetTop - e.clientY }; });
   document.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
-    panel.style.left = (e.clientX + offset.x) + "px"; panel.style.top = (e.clientY + offset.y) + "px"; panel.style.transform = "none";
+    panel.style.left = (e.clientX + offset.x) + "px"; panel.style.top = (e.clientY + offset.y) + "px"; panel.style.transform = "translate(0,0)";
   });
   document.addEventListener("mouseup", () => isDragging = false);
 });

@@ -4,67 +4,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VibeHotel (starter)</title>
+  <title>VibeHotel</title>
   <style>
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    }
-
-    #app {
-      height: 100%;
-    }
-
-    .hud {
-      position: fixed;
-      left: 12px;
-      bottom: 12px;
-      width: min(520px, calc(100vw - 24px));
-      background: rgba(255, 255, 255, 0.92);
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    }
-
-    .row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    input,
-    button {
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(0, 0, 0, 0.15);
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    #log {
-      height: 150px;
-      overflow: auto;
-      border-radius: 10px;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      padding: 8px;
-      background: rgba(255, 255, 255, 0.65);
-    }
-
-    .muted {
-      opacity: 0.7;
-      font-size: 12px;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
     :root {
       --habbo-blue: #0077bb;
       --habbo-dark-blue: #005588;
-      --habbo-grey-bg: #e9e9e9;
-      --habbo-panel-border: #8d8d8d;
-      --habbo-panel-header: #333333;
+      --habbo-grey-bg: #ececec;
+      --habbo-panel-border: #000;
+      /* Pixel art vibe: black borders */
+      --habbo-panel-header: #4a90e2;
+      --font-pixel: 'VT323', monospace;
     }
 
     html,
@@ -72,10 +23,47 @@
       height: 100%;
       margin: 0;
       padding: 0;
-      font-family: 'Ubuntu', 'Segoe UI', sans-serif;
-      background: #222;
+      font-family: var(--font-pixel);
+      font-size: 20px;
+      /* Larger font for pixel look */
+      background: radial-gradient(circle at center, #1a2a6c, #b21f1f, #fdbb2d);
+      /* "Night in the City" vibe, but let's go for Hotel View Blue */
+      background: radial-gradient(circle at center, #2b32b2, #1488cc);
+      background: linear-gradient(to bottom, #001f3f, #001122, #000000);
+      /* Starry night */
       overflow: hidden;
       user-select: none;
+      image-rendering: pixelated;
+    }
+
+    /* Stars / Noise */
+    body::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 3px),
+        radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 2px),
+        radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 3px);
+      background-size: 550px 550px, 350px 350px, 250px 250px;
+      background-position: 0 0, 40px 60px, 130px 270px;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.6;
+    }
+
+    /* Scanline effect */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+      z-index: 9999;
     }
 
     #app {
@@ -83,23 +71,113 @@
       cursor: url('https://hotel-assets.com/c/cursor.png'), auto;
     }
 
+    /* --- Common UI --- */
+    button,
+    input {
+      font-family: var(--font-pixel);
+      font-size: 18px;
+      border: 2px solid #000;
+      box-shadow: 2px 2px 0 #000;
+      outline: none;
+    }
+
+    button:active {
+      transform: translate(2px, 2px);
+      box-shadow: none;
+    }
+
+    /* --- Login Overlay --- */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      background: #4b6cb7;
+      /* fallback */
+      background: linear-gradient(to bottom, #1e3c72, #2a5298);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-box {
+      background: #ddd;
+      padding: 30px;
+      border: 4px solid #000;
+      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.5);
+      text-align: center;
+      width: 300px;
+    }
+
+    .login-box h1 {
+      margin-top: 0;
+      font-size: 3rem;
+      color: #000;
+      text-shadow: 2px 2px 0 #fff;
+    }
+
+    .color-picker {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .color-opt {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #000;
+      cursor: pointer;
+    }
+
+    .color-opt.selected {
+      border: 2px solid #fff;
+      outline: 2px solid #000;
+    }
+
+    #login-btn {
+      background: #4caf50;
+      color: white;
+      font-size: 24px;
+      padding: 8px 20px;
+      width: 100%;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    #login-btn:hover {
+      background: #45a049;
+    }
+
+    #login-name {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      font-size: 22px;
+      text-align: center;
+    }
+
+
     /* --- Bottom Toolbar --- */
     .bottom-bar {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 52px;
-      background: rgba(0, 0, 0, 0.85);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      height: 58px;
+      background: #222;
+      border-top: 3px solid #000;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 12px;
       z-index: 1000;
+      font-size: 20px;
     }
 
-    .toolbar-left {
+    .toolbar-left,
+    .toolbar-right,
+    .toolbar-center {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -109,68 +187,44 @@
       position: absolute;
       left: 50%;
       transform: translateX(-50%);
-      display: flex;
-      gap: 8px;
     }
 
-    .toolbar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
 
     .user-pill {
-      background: #333;
-      border-radius: 6px;
+      background: #fff;
+      border: 2px solid #000;
       padding: 4px 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: white;
-      font-size: 13px;
+      color: #000;
+      box-shadow: 2px 2px 0 #000;
     }
 
     .credits-pill {
-      background: #2e7d32;
-      border-radius: 6px;
+      background: #f7d51d;
+      border: 2px solid #000;
       padding: 4px 10px;
-      color: white;
-      font-size: 13px;
+      color: #000;
       font-weight: bold;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 2px 2px 0 #000;
     }
 
     .tool-btn {
-      background: #444;
-      border: 1px solid #555;
-      border-radius: 6px;
-      color: white;
-      padding: 6px 12px;
-      font-size: 13px;
+      background: #ddd;
+      padding: 6px 14px;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: background 0.2s, transform 0.1s;
+      color: #000;
     }
 
     .tool-btn:hover {
-      background: #555;
-    }
-
-    .tool-btn:active {
-      transform: translateY(1px);
+      background: #fff;
     }
 
     .tool-btn.blue {
       background: var(--habbo-blue);
-      border-color: var(--habbo-dark-blue);
+      color: white;
     }
 
-    .tool-btn.blue:hover {
-      background: var(--habbo-dark-blue);
-    }
 
     /* --- Habbo Panels --- */
     .panel {
@@ -178,27 +232,26 @@
       left: 50%;
       top: 45%;
       transform: translate(-50%, -50%);
-      width: 380px;
+      width: 400px;
       background: var(--habbo-grey-bg);
-      border-radius: 8px;
-      border: 1px solid var(--habbo-panel-border);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 white;
+      border: 3px solid #000;
+      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.5);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
       z-index: 500;
     }
 
     .panel-header {
       background: var(--habbo-panel-header);
       color: white;
-      padding: 8px 12px;
+      padding: 6px 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       cursor: move;
-      font-size: 14px;
-      font-weight: bold;
+      border-bottom: 3px solid #000;
+      font-size: 22px;
+      letter-spacing: 1px;
     }
 
     .panel-body {
@@ -209,72 +262,15 @@
     }
 
     .close-btn {
-      background: #555;
-      border: none;
+      background: #d32f2f;
+      border: 2px solid #000;
       color: white;
-      width: 22px;
-      height: 22px;
-      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      line-height: 18px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-    }
-
-    .close-btn:hover {
-      background: #cc3333;
-    }
-
-    /* --- Item Grids --- */
-    .item-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      gap: 10px;
-    }
-
-    .item-card {
-      background: white;
-      border: 1px solid #ccc;
-      border-bottom: 3px solid #ccc;
-      border-radius: 6px;
-      padding: 10px;
-      text-align: center;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.1s;
-    }
-
-    .item-card:hover {
-      border-color: var(--habbo-blue);
-      transform: translateY(-1px);
-    }
-
-    .item-card:active {
-      transform: translateY(1px);
-      border-bottom-width: 1px;
-    }
-
-    .item-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 4px;
-      box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
-    }
-
-    .item-name {
-      font-size: 11px;
-      font-weight: bold;
-      color: #444;
-    }
-
-    .item-cost {
-      font-size: 12px;
-      font-weight: bold;
-      color: var(--habbo-dark-blue);
+      font-family: sans-serif;
+      /* x looks better in sans */
     }
 
     /* --- Chat Bubbles --- */
@@ -291,56 +287,37 @@
     .chat-bubble {
       position: absolute;
       background: white;
-      border-radius: 6px;
-      padding: 4px 10px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-      font-size: 13px;
+      border: 2px solid #000;
+      padding: 2px 8px;
+      box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+      font-size: 18px;
       transform: translate(-50%, -100%);
-      border: 1px solid #ccc;
       white-space: nowrap;
       transition: top 0.2s, opacity 0.2s;
     }
 
-    .chat-bubble::after {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-left: 6px solid transparent;
-      border-right: 6px solid transparent;
-      border-top: 6px solid white;
+    /* --- Item Grids --- */
+    .item-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 12px;
     }
+
+    .item-card {
+      background: white;
+      border: 2px solid #000;
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .item-card:hover {
+      background: #eef;
+    }
+
 
     .hidden {
       display: none !important;
-    }
-
-    /* --- Room Controls (Floating) --- */
-    .room-ui {
-      position: fixed;
-      left: 20px;
-      top: 20px;
-      z-index: 100;
-    }
-
-    .room-info {
-      background: rgba(0, 0, 0, 0.6);
-      border-radius: 12px;
-      padding: 10px 16px;
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .room-name {
-      font-weight: bold;
-      font-size: 16px;
-      margin-bottom: 2px;
-    }
-
-    .room-owner {
-      font-size: 12px;
-      opacity: 0.8;
     }
   </style>
 </head>
@@ -349,38 +326,49 @@
   <div id="app"></div>
   <div id="chat-layer"></div>
 
-  <div class="room-ui">
-    <div class="room-info">
-      <div class="room-name">Main Lobby</div>
-      <div class="room-owner">Owned by VibeHotel</div>
+  <!-- Login Overlay -->
+  <div id="login-overlay">
+    <div class="login-box">
+      <h1>VibeHotel</h1>
+      <input type="text" id="login-name" placeholder="Enter your name..." maxlength="20" value="Guest" />
+      <div class="color-picker" id="color-picker">
+        <div class="color-opt selected" style="background: #ffffff;" data-color="16777215"></div>
+        <div class="color-opt" style="background: #ff4444;" data-color="16729156"></div>
+        <div class="color-opt" style="background: #4444ff;" data-color="4473983"></div>
+        <div class="color-opt" style="background: #44ff44;" data-color="4521796"></div>
+        <div class="color-opt" style="background: #e4e4e4;" data-color="15000804"></div>
+        <div class="color-opt" style="background: #f0c330;" data-color="15778608"></div>
+      </div>
+      <button id="login-btn">ENTER HOTEL</button>
     </div>
   </div>
 
   <div class="bottom-bar">
     <div class="toolbar-left">
       <div class="user-pill">
-        <span id="my-name-display">Guest</span>
+        <span id="my-name-display">...</span>
       </div>
-      <div id="credits-display" class="credits-pill">0 Credits</div>
+      <div id="credits-display" class="credits-pill">...</div>
     </div>
 
     <div class="toolbar-center">
-      <button id="toggle-shop" class="tool-btn blue">🛒 Shop</button>
-      <button id="toggle-inv" class="tool-btn">🎒 My Stuff</button>
-      <button id="toggle-rooms" class="tool-btn">🏨 Hotel View</button>
+      <button id="toggle-shop" class="tool-btn blue">Shop</button>
+      <button id="toggle-inv" class="tool-btn">Stuff</button>
+      <button id="toggle-rooms" class="tool-btn">Rooms</button>
     </div>
 
     <div class="toolbar-right">
-      <div id="status" class="muted">Connecting...</div>
-      <input id="chat" placeholder="Click here to talk..."
-        style="width: 200px; height: 32px; border-radius: 6px; border: none; padding: 0 12px; outline: none;" />
+      <button id="toggle-music" class="tool-btn">🎵 OFF</button>
+      <div id="status" class="muted" style="font-size: 16px;">Offline</div>
+      <input id="chat" placeholder="Type here..."
+        style="width: 240px; height: 28px; border-radius: 0; padding: 0 8px;" />
     </div>
   </div>
 
   <div id="shop-panel" class="panel hidden">
     <div class="panel-header">
-      <span>Catalog</span>
-      <button class="close-btn">×</button>
+      <span>CATALOG</span>
+      <button class="close-btn">x</button>
     </div>
     <div class="panel-body">
       <div id="catalog-list" class="item-grid"></div>
@@ -389,8 +377,8 @@
 
   <div id="inventory-panel" class="panel hidden">
     <div class="panel-header">
-      <span>Inventory</span>
-      <button class="close-btn">×</button>
+      <span>INVENTORY</span>
+      <button class="close-btn">x</button>
     </div>
     <div class="panel-body">
       <div id="inventory-list" class="item-grid"></div>
