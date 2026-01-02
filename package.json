@@ -1,0 +1,16 @@
+{
+  "name": "vibehotel-starter",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c auto \"npm:dev --workspace server\" \"npm:dev --workspace client\"",
+    "build": "npm run build --workspace server && npm run build --workspace client",
+    "lint": "echo \"(optional) add eslint\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
